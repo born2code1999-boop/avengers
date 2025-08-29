@@ -1,0 +1,46 @@
+name: Ticketon Watcher
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # каждые 5 минут (UTC)
+  workflow_dispatch:        # ручной запуск
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency: ticketon-watcher
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright (Chromium + deps)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run watcher (one-shot)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          KEYWORDS:           ${{ vars.KEYWORDS }}
+          URLS:               ${{ vars.URLS }}
+          CHECK_INTERVAL_SEC: "60"
+          ONE_SHOT:           "true"
+          NOTIFY_TTL_HOURS:   ${{ vars.NOTIFY_TTL_HOURS || '24' }}
+          DEEP_CHECK:         ${{ vars.DEEP_CHECK || 'true' }}
+        run: node index.js
+
+      - name: Notify failure to Telegram
+        if: failure()
+        env:
+          BOT:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG="❌ Ticketon watcher failed (run $GITHUB_RUN_ID in $GITHUB_REPOSITORY)"
+          curl -s "https://api.telegram.org/bot$BOT/sendMessage" \
+            -d chat_id="$CHAT" -d text="$MSG" >/dev/null
