@@ -1,0 +1,16 @@
+{
+  "name": "ticketon-watcher",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Watches Ticketon pages for Kairat/Real Madrid mentions and sends Telegram alerts.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "oneshot": "ONE_SHOT=true node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0",
+    "playwright": "^1.46.0"
+  }
+}
